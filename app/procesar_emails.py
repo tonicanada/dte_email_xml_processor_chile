@@ -7,6 +7,7 @@ import mimetypes
 
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from email import encoders
 
 from google.oauth2.credentials import Credentials
@@ -157,6 +158,17 @@ def reenviar_email(path, destino):
     message["to"] = destino
     message["subject"] = "Reenvío automático de XML DTE"
 
+    # Cuerpo del mensaje
+    cuerpo = (
+        "Estimado/a:\n\n"
+        "Se adjunta archivo XML correspondiente a una factura electrónica recibida.\n\n"
+        "Este mensaje ha sido generado automáticamente por el sistema de integración DTE.\n"
+        "No responder a este correo.\n\n"
+        "Saludos,\nSistema Automatizado"
+    )
+    message.attach(MIMEText(cuerpo, "plain"))
+
+    # Adjuntar XML
     content_type, _ = mimetypes.guess_type(path)
     main_type, sub_type = content_type.split("/", 1)
 
