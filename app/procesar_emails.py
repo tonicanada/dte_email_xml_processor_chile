@@ -153,36 +153,36 @@ def aplicar_etiqueta(message_id, etiqueta):
     ).execute()
 
 
-def reenviar_email(path, destino):
-    message = MIMEMultipart()
-    message["to"] = destino
-    message["subject"] = "Reenvío automático de XML DTE"
+def reenviar_email_como_original(message_id, destinatario):
+    # Obtener el mensaje original como raw
+    original = gmail_service.users().messages().get(
+        userId="me",
+        id=message_id,
+        format="raw"
+    ).execute()
 
-    # Cuerpo del mensaje
-    cuerpo = (
-        "Estimado/a:\n\n"
-        "Se adjunta archivo XML correspondiente a una factura electrónica recibida.\n\n"
-        "Este mensaje ha sido generado automáticamente por el sistema de integración DTE.\n"
-        "No responder a este correo.\n\n"
-        "Saludos,\nSistema Automatizado"
-    )
-    message.attach(MIMEText(cuerpo, "plain"))
+    raw_data = original["raw"]
+    raw_bytes = base64.urlsafe_b64decode(raw_data.encode("UTF-8"))
 
-    # Adjuntar XML
-    content_type, _ = mimetypes.guess_type(path)
-    main_type, sub_type = content_type.split("/", 1)
+    # Parsear el mensaje original y cambiar el destinatario
+    import email
+    from email import policy
+    from email.parser import BytesParser
 
-    with open(path, "rb") as f:
-        mime = MIMEBase(main_type, sub_type)
-        mime.set_payload(f.read())
-        encoders.encode_base64(mime)
-        mime.add_header("Content-Disposition",
-                        f'attachment; filename="{os.path.basename(path)}"')
-        message.attach(mime)
+    parsed_msg = BytesParser(policy=policy.SMTP).parsebytes(raw_bytes)
+    parsed_msg.replace_header("To", destinatario)
+    parsed_msg.replace_header("Subject", f"Fwd: {parsed_msg['Subject']}")
 
-    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    # Reconvertir a base64url
+    final_bytes = parsed_msg.as_bytes()
+    final_raw = base64.urlsafe_b64encode(final_bytes).decode("utf-8")
+
     gmail_service.users().messages().send(
-        userId="me", body={"raw": raw}).execute()
+        userId="me",
+        body={"raw": final_raw}
+    ).execute()
+
+    print(f"📨 Mensaje reenviado como original a: {destinatario}")
 
 
 def registrar_log(datos, gsheet, GOOGLE_SHEET_ID):
@@ -235,7 +235,7 @@ def main():
             datos["nombre_archivo"] = os.path.basename(nuevo_path)
 
             aplicar_etiqueta(mensaje["id"], empresa["razon_social"])
-            reenviar_email(nuevo_path, empresa["email_desis"])
+            reenviar_email_como_original(mensaje["id"], empresa["email_desis"])
 
             # Subir a Google Drive
             subcarpeta = datos["fecha_emision"][:7]
