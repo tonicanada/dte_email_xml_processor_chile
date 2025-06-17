@@ -14,7 +14,8 @@ def listar_correos():
 
 
 def descargar_xml(message_id):
-    message = gmail_service.users().messages().get(userId="me", id=message_id).execute()
+    message = gmail_service.users().messages().get(
+        userId="me", id=message_id).execute()
     parts = message["payload"].get("parts", [])
     for part in parts:
         filename = part.get("filename")
@@ -39,18 +40,20 @@ def es_email_sii(message):
 
 
 def aplicar_etiqueta(message_id, etiqueta):
-    labels = gmail_service.users().labels().list(userId="me").execute().get("labels", [])
+    labels = gmail_service.users().labels().list(
+        userId="me").execute().get("labels", [])
     label_id = None
     for l in labels:
         if l["name"].lower() == etiqueta.lower():
             label_id = l["id"]
             break
     if not label_id:
-        label = gmail_service.users().labels().create(userId="me", body={"name": etiqueta}).execute()
+        label = gmail_service.users().labels().create(
+            userId="me", body={"name": etiqueta}).execute()
         label_id = label["id"]
 
     gmail_service.users().messages().modify(
         userId="me",
         id=message_id,
-        body={"addLabelIds": [label_id], "removeLabelIds": ["INBOX"]}
+        body={"addLabelIds": [label_id], "removeLabelIds": ["INBOX", "UNREAD"]}
     ).execute()
