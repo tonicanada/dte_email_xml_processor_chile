@@ -1,21 +1,24 @@
 # Procesador de XML de Facturas por Email (Chile)
 
-Este proyecto automatiza la recolección, clasificación y archivado de facturas electrónicas (DTE) en formato XML enviadas por email, integrándose con Google Drive y Google Sheets. Está especialmente diseñado para el ecosistema tributario chileno.
+Este proyecto automatiza la recolección, clasificación y archivado de facturas electrónicas (DTE) en formato XML enviadas por email, integrándose con Google Drive y Google Sheets. Está especialmente diseñado para el ecosistema tributario chileno y soporta tanto documentos recibidos como respuestas del SII.
 
 ---
 
 ## 🚀 Características principales
 
-- 📥 Lectura automática de correos electrónicos con XML adjunto desde Gmail
-- 🗞️ Identificación de la empresa receptora mediante análisis del XML
-- 📨 Reenvío del XML a una casilla de correo según la empresa
-- 📁 Subida del XML a una carpeta de Google Drive organizada por empresa y mes
-- 🏷️ Etiquetado y archivado del correo original
-- 📊 Registro de cada operación en una hoja de cálculo de Google Sheets
+- 📅 Lectura automática de correos electrónicos con XML adjunto desde Gmail
+- 📄 Distinción automática entre:
+  - Documentos recibidos de proveedores (con EnvioDTE)
+  - Respuestas del SII con resultado de validación (emails desde `siidte@sii.cl`)
+- 🗾️ Identificación de la empresa mediante análisis del XML
+- 📨 Reenvío del XML a la casilla asociada a la empresa
+- 📁 Subida a Google Drive, organizado por empresa, mes y tipo (`recibidos/` o `enviados/`)
+- 🏇 Etiquetado automático del correo con la empresa y salida de la bandeja de entrada
+- 📊 Registro detallado de cada operación en Google Sheets
 
 ---
 
-## 💠 Requisitos
+## 🛀 Requisitos
 
 - Cuenta de Google con acceso a:
   - Gmail
@@ -25,9 +28,10 @@ Este proyecto automatiza la recolección, clasificación y archivado de facturas
   - Gmail API
   - Drive API
   - Sheets API
-- Archivo `credentials.json` (OAuth de usuario)
-- Token de acceso generado (`token.json`)
-- Archivo `empresas.json` con configuración por RUT receptor
+- Archivos requeridos:
+  - `credentials.json` (OAuth usuario)
+  - `token.json` (generado al autenticar)
+  - `empresas.json` (configuración por RUT receptor)
 
 ---
 
@@ -40,7 +44,7 @@ git clone https://github.com/tuusuario/procesador_dte_email_chile.git
 cd procesador_dte_email_chile
 ```
 
-### 2. Instalar dependencias (opcional si usas Docker)
+### 2. Instalar dependencias
 
 ```bash
 pip install -r requirements.txt
@@ -49,35 +53,27 @@ pip install -r requirements.txt
 ### 3. Ejecutar
 
 ```bash
-python procesar_emails.py
-```
-
-O bien, si usas Docker:
-
-```bash
-./run.sh
+python xml_processor/main.py
 ```
 
 ---
 
 ## 🐳 Docker
 
-El proyecto incluye un `Dockerfile` para facilitar su despliegue en servidores como Google Compute Engine.
+Incluye `Dockerfile` listo para Google Compute Engine, Cloud Run o servidores Linux.
 
-Los archivos sensibles (`credentials.json`, `token.json`, `empresas.json`) **no se incluyen en la imagen**, y deben ser montados como volumen externo.
+> 🛑 **Los archivos **``**, **``**, **``** deben montarse desde fuera del contenedor.**
 
 ---
 
 ## 📂 Formato de `empresas.json`
 
-Ejemplo de archivo `empresas.json`:
-
 ```json
 {
-  "77111222-3": {
-    "razon_social": "Constructora Los Andes SpA",
-    "email_desis": "dteandes@desis.cl",
-    "carpeta_drive_id": "id_folder"
+  "76407152-2": {
+    "razon_social": "Constructora Andes Spa",
+    "email_desis": "facturas@tecton.cl",
+    "carpeta_drive_id": "abc123456..."
   }
 }
 ```
@@ -86,27 +82,31 @@ Ejemplo de archivo `empresas.json`:
 
 ## 📈 Logging en Google Sheets
 
-Cada XML procesado se registra en una hoja de cálculo con la siguiente información:
+Cada XML procesado se registra en una hoja con columnas:
 
 - Fecha de emisión
-- RUT y razón social del receptor
-- RUT y razón social del emisor
+- Tipo DTE (33, 52, etc)
+- Estado del SII (solo en respuestas)
+- RUT y Razón Social del receptor
+- RUT y Razón Social del emisor
 - Folio
-- Nombre del archivo
+- Nombre de archivo
 - Fecha de procesamiento
-- ID del mensaje de Gmail
+- ID del mensaje Gmail
 - ID del archivo en Google Drive
 
 ---
 
 ## 📌 Notas
 
-- Los XML se renombran automáticamente con el formato:\
+- Los XML se renombran con el formato:\
   `yyyymmdd_abreviaturarazonsocial_nombreoriginal.xml`
-- Si usas Unidades Compartidas de Google Drive, asegúrate de que el usuario autenticado tenga acceso y se use `supportsAllDrives=True`.
+- En Drive, los archivos se almacenan en:\
+  `empresa/mes/recibidos/` o `empresa/mes/enviados/`
+- Se usa `supportsAllDrives=True` para compatibilidad con unidades compartidas
 
 ---
 
 ## 📄 Licencia
 
-[MIT](LICENSE) — libre para modificar y usar.
+[MIT](LICENSE) — libre para modificar y reutilizar.

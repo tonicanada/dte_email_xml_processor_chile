@@ -16,4 +16,4 @@ COPY app/ .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Por defecto corre el script
-CMD ["python", "procesar_emails.py"]
+CMD ["python", "main.py"]
